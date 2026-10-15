@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+	background-color: #0b0c0f;
+}
+
+body {
+	margin: 0;
+	overflow-x: hidden;
+	background:
+		radial-gradient(circle at 12% 12%, rgba(246, 216, 137, 0.08), transparent 30%),
+		radial-gradient(circle at 90% 18%, rgba(246, 216, 137, 0.06), transparent 32%),
+		radial-gradient(circle at 70% 70%, rgba(246, 216, 137, 0.05), transparent 35%),
+		linear-gradient(180deg, #0b0d10 0%, #0b0c0f 100%);
+	color: #f8f8f8;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+	min-height: 100vh;
+	overflow-x: hidden;
+}
+
+.custom-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: #d8b25e #131417;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+	width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: #131417;
+	border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: #d8b25e;
+	border-radius: 999px;
+}
+
+.gold-particles {
+	background-image:
+		radial-gradient(circle, rgba(246, 216, 137, 0.55) 0.5px, transparent 1px),
+		radial-gradient(circle, rgba(246, 216, 137, 0.35) 0.6px, transparent 1px),
+		radial-gradient(circle, rgba(246, 216, 137, 0.2) 0.7px, transparent 1px);
+	background-size: 120px 120px, 180px 180px, 240px 240px;
+	background-position: 0 0, 40px 60px, 120px 40px;
+	opacity: 0.85;
+	filter: blur(0.4px);
+	mix-blend-mode: screen;
+	animation: floatParticles 18s linear infinite;
+}
+
+@keyframes floatParticles {
+	0% {
+		background-position: 0 0, 40px 60px, 120px 40px;
+	}
+	100% {
+		background-position: 120px 60px, 200px 140px, 260px 120px;
+	}
+}
+
+.gold-particle-hover {
+	position: relative;
+	overflow: hidden;
+	z-index: 0;
+	transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+}
+
+.gold-particle-hover::before {
+	content: "";
+	position: absolute;
+	z-index: 0;
+	inset: 1px;
+	border-radius: inherit;
+	border: 1px solid rgba(246, 216, 137, 0.25);
+	opacity: 0;
+	pointer-events: none;
+	box-shadow: 0 0 0 rgba(246, 216, 137, 0);
+	transition: opacity 0.35s ease;
+}
+
+.gold-particle-hover::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: 0;
+	border-radius: inherit;
+	background: radial-gradient(circle at 30% 20%, rgba(246, 216, 137, 0.16), transparent 60%);
+	opacity: 0;
+	pointer-events: none;
+	filter: blur(12px);
+	transition: opacity 0.35s ease;
+}
+
+.gold-particle-hover:hover {
+	box-shadow: 0 0 0 1px rgba(246, 216, 137, 0.3), 0 12px 30px -16px rgba(246, 216, 137, 0.45);
+	transform: translateY(-1px);
+}
+
+.gold-particle-hover:hover::before {
+	opacity: 1;
+	animation: goldHoverPulse 2.4s ease-in-out infinite;
+}
+
+.gold-particle-hover:hover::after {
+	opacity: 1;
+}
+
+@keyframes goldHoverPulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 rgba(246, 216, 137, 0), 0 0 14px rgba(246, 216, 137, 0.12);
+	}
+	50% {
+		box-shadow: 0 0 10px rgba(246, 216, 137, 0.22), 0 0 26px rgba(246, 216, 137, 0.2);
+	}
+}

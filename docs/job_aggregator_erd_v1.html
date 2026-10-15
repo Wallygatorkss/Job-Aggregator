@@ -1,0 +1,119 @@
+
+<style>
+#erd svg { width: 100%; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  USERS {
+    uuid id PK
+    string email UK
+    string password_hash
+    string username UK
+    string role
+    boolean is_active
+    int login_attempts
+    timestamp locked_until
+    timestamp created_at
+    timestamp updated_at
+  }
+  OFFERS {
+    uuid id PK
+    string external_id UK
+    string source
+    string title
+    text description
+    string company_name
+    string company_logo_url
+    string company_website_url
+    string location
+    string contract_type
+    int salary_min
+    int salary_max
+    date published_at
+    date expires_at
+    string original_url
+    string status
+    timestamp ingested_at
+    timestamp updated_at
+  }
+  OFFER_TAGS {
+    uuid id PK
+    uuid offer_id FK
+    string tag
+  }
+  OFFER_AI_DATA {
+    uuid id PK
+    uuid offer_id FK
+    text keywords
+    string category
+    float relevance_score
+    text summary
+    timestamp processed_at
+  }
+  SAVED_OFFERS {
+    uuid id PK
+    uuid user_id FK
+    uuid offer_id FK
+    timestamp saved_at
+  }
+  INGESTION_LOGS {
+    uuid id PK
+    string source
+    string status
+    int offers_fetched
+    int offers_inserted
+    int offers_updated
+    float duration_avg_ms
+    text errors
+    timestamp started_at
+    timestamp ended_at
+  }
+  USERS ||--o{ SAVED_OFFERS : saves
+  OFFERS ||--o{ SAVED_OFFERS : saved_in
+  OFFERS ||--o{ OFFER_TAGS : has
+  OFFERS ||--o| OFFER_AI_DATA : enriched_by
+`);
+document.getElementById('erd').innerHTML = svg;
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

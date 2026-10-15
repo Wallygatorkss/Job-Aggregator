@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum ProfessionalStatus {
+  looking_for_work
+  employed
+}
+
+enum SkillType {
+  hardskill
+  softskill
+}
+
+enum IngestionStatus {
+  success
+  partial
+  failed
+}
+
+model User {
+  id             Int         @id @default(autoincrement()) @db.UnsignedInt
+  email          String      @unique @db.VarChar(255)
+  password_hash  String      @db.VarChar(255)
+  username       String      @unique @db.VarChar(100)
+  role           UserRole    @default(user)
+  is_active      Boolean     @default(true)
+  professional_status ProfessionalStatus @default(looking_for_work)
+  login_attempts Int         @default(0) @db.UnsignedTinyInt
+  locked_until   DateTime?
+  avatar_url     String?
+  banner_url     String?
+  phone          String?     @db.VarChar(32)
+  language       String?     @db.VarChar(16)
+  bio            String?     @db.Text
+  interests      Json?
+  formations     Json?
+  website        String?     @db.VarChar(512)
+  location       String?     @db.VarChar(255)
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  saved_offers   SavedOffer[]
+  applications   Application[]
+  user_skills    UserSkill[]  @relation("user_skills")
+  experiences    Experience[]
+  contract_preferences UserContractPreference[]
+  location_preferences UserLocationPreference[]
+
+  @@map("User")
+}
+
+model Experience {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  user_id     Int      @db.UnsignedInt
+  company     String   @db.VarChar(255)
+  title       String   @db.VarChar(255)
+  start_date  DateTime @db.Date
+  end_date    DateTime? @db.Date
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("experiences")
+}
+
+model Offer {
+  id                   String                     @id @default(uuid()) @db.Char(36)
+  external_id          String                     @db.VarChar(255)
+  source               String                     @db.VarChar(50)
+  source_object_id     String?                    @db.VarChar(255)
+  source_reference     String?                    @db.VarChar(255)
+  source_type          String?                    @db.VarChar(100)
+  source_created_at    DateTime?
+  source_last_update_at DateTime?
+  creator_id           String?                    @db.VarChar(255)
+  company_id           String?                    @db.VarChar(255)
+  title                String                     @db.VarChar(255)
+  description          String                     @db.MediumText
+  description_preview  String?                    @db.Text
+  raw_description      String?                    @db.MediumText
+  helmet_handle        String?                    @db.VarChar(255)
+  seo_alias            String?                    @db.VarChar(255)
+  status               String?                    @db.VarChar(50)
+  application_30_days  Boolean?
+  ranking              BigInt?                    @db.BigInt
+  premium_bool         Boolean?
+  premium_int          BigInt?                    @db.BigInt
+  published_at         DateTime
+  ingested_at          DateTime                   @default(now())
+  updated_at           DateTime                   @updatedAt
+  source_payload       Json?
+
+  contract_types       OfferContractType[]
+  skills               OfferSkill[]
+  application_stats    OfferApplicationStat?
+  analytics            OfferAnalytic?
+  applications         Application[]
+  saved_by             SavedOffer[]
+  tags                 OfferTag[]
+  ai_data              OfferAiData?
+  details              OfferDetails?
+  small_company        OfferSmallCompany?
+  small_company_sectors OfferSmallCompanySector[]
+  profession           OfferProfession?
+  geoloc               OfferGeoloc[]
+  formatted_places     OfferFormattedPlace[]
+
+  @@unique([external_id, source])
+  @@map("offers")
+}
+
+model Application {
+  id           String   @id @default(uuid()) @db.Char(36)
+  offer_id     String   @db.Char(36)
+  offer_title  String   @db.VarChar(255)
+  company_name String   @db.VarChar(255)
+  location     String   @db.VarChar(255)
+  first_name   String   @db.VarChar(100)
+  last_name    String   @db.VarChar(100)
+  cv_url       String   @db.VarChar(512)
+  linkedin_url String?  @db.VarChar(512)
+  created_at   DateTime @default(now())
+  user_id      Int?     @db.UnsignedInt
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+  user  User?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([offer_id])
+  @@index([user_id])
+  @@unique([offer_id, cv_url, first_name, last_name])
+}
+
+model Skill {
+  id          Int         @id @default(autoincrement()) @db.UnsignedInt
+  name        String      @unique @db.VarChar(100)
+  type        SkillType
+  user_skills UserSkill[]
+
+  @@index([type])
+  @@map("skills")
+}
+
+model UserSkill {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  user_id   Int      @db.UnsignedInt
+  skill_id  Int      @db.UnsignedInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation("user_skills", fields: [user_id], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skill_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, skill_id])
+  @@index([user_id])
+  @@index([skill_id])
+  @@map("user_skills")
+}
+
+model OfferDetails {
+  id                         String   @id @default(uuid()) @db.Char(36)
+  offer_id                   String   @unique @db.Char(36)
+  accept_remote              String?  @db.VarChar(50)
+  contract_permanent         Boolean?
+  currency                   String?  @db.VarChar(16)
+  locale                     String?  @db.VarChar(16)
+  profession_id              String?  @db.VarChar(255)
+  required_experience        Json?
+  required_experience_pro    Json?
+  start                      String?  @db.VarChar(100)
+  salary_min                 Int?     @db.UnsignedInt
+  salary_max                 Int?     @db.UnsignedInt
+  salary_currency            String?  @db.VarChar(16)
+  salary_recurrence          String?  @db.VarChar(50)
+  salary_max_per_year        Int?     @db.UnsignedInt
+  remote_policy_frequency    String?  @db.VarChar(50)
+  remote_policy_days_per_week Int?    @db.UnsignedTinyInt
+  places                     Json?
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model OfferSmallCompany {
+  id                    String   @id @default(uuid()) @db.Char(36)
+  offer_id              String   @unique @db.Char(36)
+  company_name          String?  @db.VarChar(255)
+  handle                String?  @db.VarChar(255)
+  external_id           String?  @db.VarChar(255)
+  seo_alias             String?  @db.VarChar(255)
+  gallery_handle        String?  @db.VarChar(255)
+  company_type          BigInt?  @db.BigInt
+  company_type_explicit String?  @db.VarChar(255)
+  fallback_gallery_url  String?  @db.VarChar(512)
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model OfferSmallCompanySector {
+  id       String @id @default(uuid()) @db.Char(36)
+  offer_id String @db.Char(36)
+  sector   String @db.VarChar(255)
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, sector])
+}
+
+model OfferProfession {
+  id              String  @id @default(uuid()) @db.Char(36)
+  offer_id        String  @unique @db.Char(36)
+  algolia_keyword String? @db.VarChar(255)
+  lang_content    Json?
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model OfferGeoloc {
+  id       String   @id @default(uuid()) @db.Char(36)
+  offer_id String   @db.Char(36)
+  position Int      @db.UnsignedInt
+  lat      Decimal? @db.Decimal(10, 7)
+  lng      Decimal? @db.Decimal(10, 7)
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, position])
+}
+
+model OfferFormattedPlace {
+  id       String @id @default(uuid()) @db.Char(36)
+  offer_id String @db.Char(36)
+  position Int    @db.UnsignedInt
+  place    String @db.VarChar(255)
+
+  offer Offer @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, position])
+}
+
+model OfferContractType {
+  id            String @id @default(uuid()) @db.Char(36)
+  offer_id      String @db.Char(36)
+  contract_type String @db.VarChar(50)
+  offer         Offer  @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, contract_type])
+}
+
+model OfferSkill {
+  id          String  @id @default(uuid()) @db.Char(36)
+  offer_id    String  @db.Char(36)
+  skill_name  String  @db.VarChar(255)
+  skill_value Float?
+  offer       Offer   @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, skill_name])
+}
+
+model OfferApplicationStat {
+  id                           String   @id @default(uuid()) @db.Char(36)
+  offer_id                     String   @unique @db.Char(36)
+  all_time_acceptance_rate     Float?
+  all_time_reply_time          Float?
+  last_30_days_acceptance_rate Float?
+  last_30_days_reply_time      Float?
+  updated_at_epoch             BigInt?  @db.UnsignedBigInt
+  created_at                   DateTime @default(now())
+  updated_at                   DateTime @updatedAt
+  offer                        Offer    @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model OfferAnalytic {
+  id                  String   @id @default(uuid()) @db.Char(36)
+  offer_id            String   @unique @db.Char(36)
+  applications        BigInt?  @db.UnsignedBigInt
+  apply_btn_clicks    BigInt?  @db.UnsignedBigInt
+  ats_applications    BigInt?  @db.UnsignedBigInt
+  cta                 Float?
+  ctr                 Float?
+  remote_applications BigInt?  @db.UnsignedBigInt
+  total_applications  BigInt?  @db.UnsignedBigInt
+  visits_count        BigInt?  @db.UnsignedBigInt
+  updated_at_epoch    BigInt?  @db.UnsignedBigInt
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  offer               Offer    @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model SavedOffer {
+  id       String   @id @default(uuid()) @db.Char(36)
+  user_id  Int      @db.UnsignedInt
+  offer_id String   @db.Char(36)
+  saved_at DateTime @default(now())
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  offer    Offer    @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, offer_id])
+}
+
+model OfferTag {
+  id       String @id @default(uuid()) @db.Char(36)
+  offer_id String @db.Char(36)
+  tag      String @db.VarChar(50)
+  offer    Offer  @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+
+  @@unique([offer_id, tag])
+}
+
+model OfferAiData {
+  id              String   @id @default(uuid()) @db.Char(36)
+  offer_id        String   @unique @db.Char(36)
+  keywords        String?  @db.Text
+  category        String?  @db.VarChar(100)
+  relevance_score Float?
+  summary         String?  @db.Text
+  processed_at    DateTime @default(now())
+  offer           Offer    @relation(fields: [offer_id], references: [id], onDelete: Cascade)
+}
+
+model IngestionLog {
+  id              String           @id @default(uuid()) @db.Char(36)
+  source          String           @db.VarChar(50)
+  status          IngestionStatus  @default(success)
+  offers_fetched  Int              @default(0) @db.UnsignedInt
+  offers_inserted Int              @default(0) @db.UnsignedInt
+  offers_updated  Int              @default(0) @db.UnsignedInt
+  duration_avg_ms Float?
+  errors          String?          @db.Text
+  started_at      DateTime         @default(now())
+  ended_at        DateTime?
+}
+
+model UserContractPreference {
+  id           Int    @id @default(autoincrement()) @db.UnsignedInt
+  user_id      Int    @db.UnsignedInt
+  contract_type String @db.VarChar(50)
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, contract_type])
+  @@index([user_id])
+  @@map("user_contract_preferences")
+}
+
+model UserLocationPreference {
+  id         Int    @id @default(autoincrement()) @db.UnsignedInt
+  user_id    Int    @db.UnsignedInt
+  location   String @db.VarChar(255)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, location])
+  @@index([user_id])
+  @@map("user_location_preferences")
+}
+
+model IaDislike {
+  id        String   @id @default(uuid()) @db.Char(36)
+  user_id   Int      @db.UnsignedInt
+  offer_id  String   @db.Char(36)
+  created_at DateTime @default(now())
+  @@unique([user_id, offer_id])
+}

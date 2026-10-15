@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build check
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker services
+        run: docker-compose build
+
+  lint:
+    name: Lint & quality
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        workdir: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.workdir }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.workdir }}
+        run: npm ci
+
+      - name: Run ESLint (if configured)
+        working-directory: ${{ matrix.workdir }}
+        run: npm run lint --if-present
+
+  test:
+    name: Automated tests
+    runs-on: self-hosted
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          DATABASE_URL: mysql://test:test@127.0.0.1:3306/testdb
+          JWT_SECRET: ci-jwt-secret
+        run: npm test --if-present

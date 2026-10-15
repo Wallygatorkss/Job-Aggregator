@@ -1,0 +1,30 @@
+{
+  "name": "b-yep-200-mpl-2-1-jobaggregator-5",
+  "version": "1.0.0",
+  "description": "j'aime les pommes et les gros chats",
+  "homepage": "https://github.com/EpitechBachelorPromo2028/B-YEP-200-MPL-2-1-jobaggregator-5#readme",
+  "bugs": {
+    "url": "https://github.com/EpitechBachelorPromo2028/B-YEP-200-MPL-2-1-jobaggregator-5/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EpitechBachelorPromo2028/B-YEP-200-MPL-2-1-jobaggregator-5.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^5.22.0",
+    "@prisma/config": "^7.8.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prisma": "^5.22.0"
+  }
+}

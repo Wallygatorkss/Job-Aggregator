@@ -1,0 +1,92 @@
+services:
+  ingest:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command:
+      ["sh", "-c", "until nc -z database 3306; do sleep 2; done; npx prisma generate --schema prisma/schema.prisma && npx tsx scripts/ingest.ts"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@database:3306/${DB_NAME}
+      - API_KEY=${API_KEY}
+      - API_DELAY=${API_DELAY}
+      - INGEST_PAGE=${INGEST_PAGE}
+      - INGEST_SIZE=${INGEST_SIZE}
+    volumes:
+      - ./backend:/app
+      - ./IA:/app/IA
+      - /app/node_modules
+    networks:
+      - jobaggregator-network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - backend
+    networks:
+      - jobaggregator-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    command:
+      ["sh", "-c", "until nc -z database 3306; do sleep 2; done; npm install && npx prisma generate --schema prisma/schema.prisma && npx tsx src/app.ts"]
+    volumes:
+      - ./backend:/app
+      - ./IA:/app/IA
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@database:3306/${DB_NAME}
+      - DB_HOST=database
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - CV_PYTHON_PATH=/opt/venv/bin/python
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - jobaggregator-network
+
+  database:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${DB_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - jobaggregator-network
+
+volumes:
+  mysql_data:
+
+networks:
+  jobaggregator-network:
+    driver: bridge

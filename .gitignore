@@ -1,0 +1,7 @@
+node_modules/
+.env
+_pycache_/
+/generated/prisma
+frontend/node_modules/
+node_modules/
+IA/venv/

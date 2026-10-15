@@ -1,0 +1,3 @@
+ALTER TABLE `User` ADD COLUMN `avatar_url` TEXT NULL;
+
+ALTER TABLE `User` ADD COLUMN `banner_url` TEXT NULL;
